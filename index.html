@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ZeroSploit — Vulnerability Research</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fira+Code:wght@300;400&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/style.css"/>
+</head>
+<body>
+
+<div class="scene" aria-hidden="true">
+  <div class="sg-tr"></div>
+  <div class="sg-bl"></div>
+  <div class="sg-rays"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="/">zero<span class="dollar">$</span>ploit</a>
+  <div class="nav-links">
+    <a href="#research">Research</a>
+    <a href="#techniques">Techniques</a>
+    <a href="#about">About us</a>
+    <a href="#contact">Threat Reports</a>
+  </div>
+  <a class="nav-btn" href="#contact">Contact us</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-chip">
+      <div class="chip-icon">&#x2299;</div>
+      New Release
+    </div>
+    <div class="hero-year">2026</div>
+    <h1 class="hero-headline">Vulnerability<br/>Research</h1>
+    <p class="hero-sub">
+      Memory corruption, authentication failures, and novel attack chains —
+      our research covers <strong>24+ CVEs</strong> across kernel, firmware,
+      web, and cloud attack surfaces. Every finding fully documented.
+    </p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="#research">Read latest writeups</a>
+      <a class="btn-outline" href="#about">Our methodology &rarr;</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="report-card">
+      <div class="rc-glow"></div>
+      <div class="rc-top">
+        <span class="rc-brand">zero<span class="dollar">$</span>ploit</span>
+        <span class="rc-dot"></span>
+      </div>
+      <div class="rc-body">
+        <div class="rc-mesh"></div>
+        <div class="rc-label">Vulnerability Research</div>
+        <div class="rc-title">Annual Threat<br/>Intelligence</div>
+        <div class="rc-year">2026</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-cell">
+      <div class="stat-num">24<span>+</span></div>
+      <div class="stat-label">CVEs Assigned</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">9</div>
+      <div class="stat-label">Critical Findings</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">17</div>
+      <div class="stat-label">Vendors Notified</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">90</div>
+      <div class="stat-label">Day Disclosure</div>
+    </div>
+  </div>
+</div>
+
+<!-- RESEARCH -->
+<div style="border-top: 1px solid var(--border); position: relative; z-index: 1;">
+<div class="section" id="research">
+  <div class="sec-label">// latest research & advisories</div>
+
+  <div class="cards-layout">
+
+    <!-- hero row -->
+    <div class="rcard rcard-hero" onclick="window.location='posts/cve-2025-example.html'">
+      <div class="rcard-hero-left">
+        <div class="sev sev-c">Critical &middot; CVE-2025-4471</div>
+        <div class="rcard-title">Heap Overflow to Full Kernel Control via io_uring Async Cancel Path</div>
+        <p class="rcard-excerpt">A reliable privilege escalation chain from an unprivileged user to ring-0, exploiting a race window in Linux 6.7.x's io_uring cancellation handler. We trace the off-by-one through four exploitation stages with a complete weaponized PoC.</p>
+        <div class="rcard-tags">
+          <span class="rtag">heap overflow</span>
+          <span class="rtag">LPE</span>
+          <span class="rtag">kernel</span>
+          <span class="rtag">io_uring</span>
+          <span class="rtag">Linux 6.7.x</span>
+        </div>
+      </div>
+      <div class="rcard-hero-right">
+        <div class="rcard-foot" style="border: none; padding: 0; margin: 0 0 1.2rem 0;">
+          <div class="rcard-meta">Linux Kernel &middot; June 2025<br/>Status: Patched (v6.8)</div>
+          <div class="rcard-cvss">CVSS 9.8</div>
+        </div>
+        <p class="rcard-excerpt">The root cause is a single off-by-one in <code style="font-family:var(--code);font-size:0.78em;color:var(--green);">io_async_cancel()</code> that leaves a request structure partially freed. On SMP systems this race window is deterministic and reliable within seconds.</p>
+        <div class="rcard-foot" style="margin-top: 1.2rem;">
+          <span style="font-family:var(--code);font-size:0.6rem;color:var(--green);letter-spacing:0.06em;">Featured writeup</span>
+          <span class="rcard-arrow">&rarr;</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- row 2 -->
+    <a class="rcard" href="#">
+      <div class="sev sev-h">High &middot; Auth Bypass</div>
+      <div class="rcard-title">Algorithm Confusion in Auth0 SDK: Forging Any Token with the Public Key</div>
+      <p class="rcard-excerpt">Mishandled "alg" field lets an attacker forge valid JWTs by switching RS256 &rarr; HS256 and signing with the server's own public cert as the HMAC secret.</p>
+      <div class="rcard-foot">
+        <div class="rcard-meta">Auth0 / Okta &middot; Apr 2025</div>
+        <span class="rcard-arrow">&rarr;</span>
+      </div>
+    </a>
+
+    <a class="rcard" href="#">
+      <div class="sev sev-c">Critical &middot; RCE</div>
+      <div class="rcard-title">Pre-Auth RCE in OpenVPN 2.6.x via Malformed TLS Handshake</div>
+      <p class="rcard-excerpt">Heap corruption triggered before any authentication through a crafted TLS control channel packet. Full server compromise, no credentials required.</p>
+      <div class="rcard-foot">
+        <div class="rcard-meta">OpenVPN Inc. &middot; Mar 2025</div>
+        <span class="rcard-arrow">&rarr;</span>
+      </div>
+    </a>
+
+    <a class="rcard" href="#">
+      <div class="sev sev-h">High &middot; SSRF</div>
+      <div class="rcard-title">SSRF &rarr; IAM Credential Theft in GitHub Actions Runners</div>
+      <p class="rcard-excerpt">Workflow SSRF pattern reaching the EC2 metadata endpoint, silently leaking temporary AWS credentials to any contributor with write access.</p>
+      <div class="rcard-foot">
+        <div class="rcard-meta">GitHub / AWS &middot; Jan 2025</div>
+        <span class="rcard-arrow">&rarr;</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+</div>
+
+<!-- TECHNIQUES -->
+<div class="tech-wrap" id="techniques">
+  <div class="tech-inner">
+    <div class="sec-label">// research areas</div>
+    <div class="tech-grid">
+      <div class="tech-cell">
+        <div class="tech-num">[ 01 ]</div>
+        <div class="tech-name">Memory Corruption</div>
+        <div class="tech-line"></div>
+        <p class="tech-desc">Heap overflows, use-after-free, type confusion, OOB access. We write functional exploits — not just crash reproducers.</p>
+      </div>
+      <div class="tech-cell">
+        <div class="tech-num">[ 02 ]</div>
+        <div class="tech-name">Auth & Crypto Flaws</div>
+        <div class="tech-line"></div>
+        <p class="tech-desc">JWT confusion, broken PKCE, timing side-channels, and cryptographic primitive misuse in real production code.</p>
+      </div>
+      <div class="tech-cell">
+        <div class="tech-num">[ 03 ]</div>
+        <div class="tech-name">Kernel & Firmware</div>
+        <div class="tech-line"></div>
+        <p class="tech-desc">Linux kernel subsystem audits, embedded firmware RE, and exploitation of privileged OS paths and driver surfaces.</p>
+      </div>
+      <div class="tech-cell">
+        <div class="tech-num">[ 04 ]</div>
+        <div class="tech-name">Web & Cloud Chains</div>
+        <div class="tech-line"></div>
+        <p class="tech-desc">SSRF pivots, CI/CD poisoning, trust boundary violations. Low-severity bugs chained into critical real-world impact.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div style="border-top: 1px solid var(--border); position: relative; z-index: 1;">
+<div class="section" id="about">
+  <div class="sec-label">// about zerosploit</div>
+  <div class="about-grid">
+    <div>
+      <h2 class="about-title">We find what<br/>others <span class="accent">missed.</span></h2>
+      <div class="about-body">
+        <p>ZeroSploit is an independent vulnerability research group. We select targets based on real-world deployment — software that organizations depend on — and audit until we find what the vendor missed.</p>
+        <p>Every finding becomes a complete technical writeup. How we found it, how we exploited it, what defenders can do. No teaser posts. No paywalled details. No marketing.</p>
+        <p>We believe defenders and attackers should not have asymmetric access to the same information. So we publish everything.</p>
+      </div>
+    </div>
+    <div>
+      <div class="timeline">
+        <div class="tl-head">
+          <div class="tl-dot"></div>
+          <span class="tl-title">90-day disclosure timeline</span>
+        </div>
+        <div class="tl-row">
+          <div class="tl-day">D+0</div>
+          <div class="tl-body">
+            <div class="tl-step">Private vendor notification</div>
+            <p class="tl-desc">Full technical details and working PoC sent on the day of discovery.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-day">D+14</div>
+          <div class="tl-body">
+            <div class="tl-step">Escalation if unresponsive</div>
+            <p class="tl-desc">CERT/CC or national CSIRT contacted if no vendor response received.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-day">D+90</div>
+          <div class="tl-body">
+            <div class="tl-step">Public disclosure</div>
+            <p class="tl-desc">Full writeup published regardless of patch status. Extensions only for complex multi-vendor coordination.</p>
+          </div>
+        </div>
+      </div>
+      <div class="policy-note">
+        <strong>// policy</strong>
+        No 0day sales &nbsp;&middot;&nbsp; No brokers &nbsp;&middot;&nbsp; No exceptions<br/>
+        PoC ships with every advisory<br/>
+        Weaponization ambiguity is not a defense strategy
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<footer id="contact">
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="f-logo">zero<span class="dollar">$</span>ploit</div>
+        <p class="f-desc">Independent vulnerability research. Original findings, full documentation, responsible disclosure. Since 2023.</p>
+        <div class="f-pgp">
+          <strong>security@zerosploit.io</strong>
+          PGP: DEAD BEEF C0DE F00D 1337<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CAFE BABE FEED FACE 0000
+        </div>
+      </div>
+      <div class="footer-col">
+        <h5>Research</h5>
+        <ul>
+          <li><a href="#">All Writeups</a></li>
+          <li><a href="#">By Severity</a></li>
+          <li><a href="#">CVE Index</a></li>
+          <li><a href="#">By Target</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Methodology</a></li>
+          <li><a href="#">Disclosure Policy</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Contact</h5>
+        <ul>
+          <li><a href="mailto:security@zerosploit.io">Email</a></li>
+          <li><a href="#">PGP Key</a></li>
+          <li><a href="#">GitHub</a></li>
+          <li><a href="#">Twitter / X</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span class="f-copy">&copy; 2026 ZeroSploit &middot; Research for educational and defensive purposes &middot; No 0day sales &middot; No brokers</span>
+      <div class="f-status">
+        <span class="f-status-dot"></span>
+        all systems operational
+      </div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
