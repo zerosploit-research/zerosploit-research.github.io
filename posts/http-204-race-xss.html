@@ -97,6 +97,8 @@
 
     <p>The idea is simple. Check the input, and if it looks dangerous, redirect the user away before anything bad happens. Sounds reasonable. But there's a fundamental flaw in how browsers handle navigation, and it creates a race condition that lets you bypass the entire check.</p>
 
+    <p>This is Part 1 of a series where I walk through the research, the discovery, and the escalation. In this post I'll cover the vulnerability pattern, explain why HTTP 204 matters, and show a working proof of concept.</p>
+
     <h2 id="pattern">The Vulnerable Pattern</h2>
 
     <p>Here's a page I built to demonstrate the issue. You'll find variations of this pattern all over production codebases:</p>
@@ -122,7 +124,9 @@
 
     <p>Walk through it. The page reads a <code>name</code> parameter from the URL. If that parameter contains <code>&lt;</code> or <code>&gt;</code>, it redirects to <code>/login.html</code>. The developer's thinking: the redirect happens before the <code>setTimeout</code> callback fires, so the dangerous input never reaches <code>innerHTML</code>.</p>
 
-    <p>If you open this page with <code>?name=Guest</code>, you get a clean "Welcome, Guest" message. If you open it with <code>?name=&lt;script&gt;alert(1)&lt;/script&gt;</code>, the sanitizer catches the angle brackets and sends you to the login page. Works exactly as intended. Except it doesn't. Not really.</p>
+    <p>If you open this page with <code>?name=Guest</code>, you get a clean "Welcome, Guest" message. If you open it with <code>?name=&lt;script&gt;alert(1)&lt;/script&gt;</code>, the sanitizer catches the angle brackets and sends you to the login page. Works exactly as intended.</p>
+
+    <p>Except it doesn't. Not really.</p>
 
     <h2 id="async">The Flaw: Navigation is Asynchronous</h2>
 
@@ -138,11 +142,13 @@
 
     <h2 id="204">HTTP 204: No Content, Stay Where You Are</h2>
 
-    <p>HTTP 204 is one of those status codes that most developers know exists but never think twice about. The MDN documentation describes it as a successful response indicating that "the client doesn't need to navigate away from its current page."</p>
+    <p>HTTP 204 is one of those status codes that most developers know exists but never think twice about. The <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN documentation</a> describes it as a successful response indicating that "the client doesn't need to navigate away from its current page."</p>
 
-    <p>According to RFC 9110, a 204 response means the server successfully processed the request but has no content to return. The critical part is what the browser does with it during navigation: <strong>nothing</strong>. The browser stays on the current page. The document is preserved. JavaScript keeps running.</p>
+    <p>According to <a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110</a>, a 204 response means the server successfully processed the request but has no content to return. The critical part is what the browser does with it during navigation: <strong>nothing</strong>. The browser stays on the current page. The document is preserved. JavaScript keeps running.</p>
 
-    <p>This is the intended behavior. It's used for things like auto-save in wiki editors — you <code>PUT</code> your changes, the server responds with 204, and the editor stays exactly where it is. No page reload, no navigation.</p>
+    <p>As <a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI's guide on 204</a> puts it: "Unlike other responses, 204 does not refresh or navigate away from the page. The user's view remains exactly as it was."</p>
+
+    <p>This is the intended behavior. It's used for things like auto-save in wiki editors — you <code>PUT</code> your changes, the server responds with 204, and the editor stays exactly where it is. No page reload, no navigation. The <a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium source code</a> has gone through multiple revisions on how to handle this exact scenario.</p>
 
     <p>So what happens if we navigate a page to a URL that responds with 204? The page stays alive. All registered timers keep running. The document is preserved.</p>
 
