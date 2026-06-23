@@ -79,18 +79,18 @@
 <div class="stats-strip">
   <div class="stats-inner">
     <div class="stat">
-      <span class="stat-n">24+</span>
-      <span class="stat-l">CVEs assigned</span>
+      <span class="stat-n">1</span>
+      <span class="stat-l">Published writeup</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
-      <span class="stat-n">9</span>
-      <span class="stat-l">Critical findings</span>
+      <span class="stat-n">3</span>
+      <span class="stat-l">Part series</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
-      <span class="stat-n">17</span>
-      <span class="stat-l">Vendors notified</span>
+      <span class="stat-n">0day</span>
+      <span class="stat-l">Sales. Never.</span>
     </div>
     <div class="stat-sep"></div>
     <div class="stat">
@@ -108,55 +108,30 @@
   </div>
 
   <!-- Featured -->
-  <a href="posts/cve-2025-example.html" class="feat reveal">
+  <a href="posts/http-204-race-xss.html" class="feat reveal">
     <div class="feat-top">
-      <span class="sev sev-c">critical</span>
-      <span class="feat-cve">CVE-2025-4471</span>
-      <span class="feat-cvss">CVSS 9.8</span>
+      <span class="sev sev-h">High &middot; XSS Bypass</span>
+      <span class="feat-cve">Part 1 of 3</span>
+      <span class="feat-cvss">Race Condition</span>
     </div>
-    <div class="feat-title">Heap Overflow to Full Kernel Control via io_uring Async Cancel Path</div>
-    <p class="feat-desc">A reliable privilege escalation chain from an unprivileged user to ring-0, exploiting a race window in Linux 6.7.x's io_uring cancellation handler. We trace the off-by-one through four exploitation stages with a complete PoC.</p>
+    <div class="feat-title">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</div>
+    <p class="feat-desc">How HTTP 204 No Content cancels browser navigation, turning a <code>window.location.href</code> redirect sanitizer into a race condition exploitable for XSS. Reliable execution in under 100ms using in-process iframes.</p>
     <div class="feat-bottom">
       <div class="feat-tags">
-        <span>heap overflow</span>
-        <span>LPE</span>
-        <span>kernel</span>
-        <span>io_uring</span>
-        <span>Linux 6.7.x</span>
+        <span>xss</span>
+        <span>race condition</span>
+        <span>http 204</span>
+        <span>client-side</span>
+        <span>iframe</span>
       </div>
       <div class="feat-meta">
-        <span>Linux Kernel</span>
-        <span>June 2025</span>
-        <span>Patched v6.8</span>
+        <span>Web / Browser</span>
+        <span>2026</span>
+        <span>Active Research</span>
       </div>
     </div>
     <div class="feat-read">Read writeup <span>&rarr;</span></div>
   </a>
-
-  <!-- Advisory list -->
-  <div class="adv-list">
-    <a class="adv reveal reveal-d1" href="#">
-      <span class="adv-dot adv-dot-h"></span>
-      <span class="adv-title">Algorithm Confusion in Auth0 SDK: Forging Any Token with the Public Key</span>
-      <span class="adv-cat">Auth Bypass</span>
-      <span class="adv-date">Apr 2025</span>
-      <span class="adv-arr">&rarr;</span>
-    </a>
-    <a class="adv reveal reveal-d2" href="#">
-      <span class="adv-dot adv-dot-c"></span>
-      <span class="adv-title">Pre-Auth RCE in OpenVPN 2.6.x via Malformed TLS Handshake</span>
-      <span class="adv-cat">RCE</span>
-      <span class="adv-date">Mar 2025</span>
-      <span class="adv-arr">&rarr;</span>
-    </a>
-    <a class="adv reveal reveal-d3" href="#">
-      <span class="adv-dot adv-dot-h"></span>
-      <span class="adv-title">SSRF to IAM Credential Theft in GitHub Actions Runners</span>
-      <span class="adv-cat">SSRF</span>
-      <span class="adv-date">Jan 2025</span>
-      <span class="adv-arr">&rarr;</span>
-    </a>
-  </div>
 </section>
 
 <!-- DISCIPLINES -->
