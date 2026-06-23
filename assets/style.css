@@ -1168,6 +1168,23 @@ footer {
   line-height: 1.7;
 }
 
+/* Prism overrides — keep our palette */
+pre[class*="language-"], code[class*="language-"] {
+  background: var(--bg) !important;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-shadow: none !important;
+}
+.token.keyword   { color: #c678dd; }
+.token.function  { color: #61afef; }
+.token.string    { color: #98c379; }
+.token.comment   { color: var(--text3); font-style: italic; }
+.token.number    { color: #d19a66; }
+.token.operator, .token.punctuation { color: var(--text2); }
+.token.tag       { color: var(--red); }
+.token.attr-name { color: #d19a66; }
+.token.attr-value{ color: #98c379; }
+
 .post-body .info-box {
   background: var(--bg1);
   border: 1px solid var(--border);

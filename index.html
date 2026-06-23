@@ -57,17 +57,13 @@
         <div class="term-path">~/zerosploit</div>
       </div>
       <div class="term-body">
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">audit --target webapp --check client-validation</span></div>
-        <div class="term-line dim">[*] window.location.href sanitizer detected</div>
-        <div class="term-line dim">[*] Delayed sink found &mdash; setTimeout(innerHTML, 500ms)</div>
-        <div class="term-line dim">[*] Navigation is async &mdash; race window confirmed</div>
+        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">scan --target webapp --check client-validation</span></div>
+        <div class="term-line dim">[*] sanitizer: window.location.href redirect</div>
+        <div class="term-line dim">[*] async navigation + delayed sink &mdash; race window open</div>
         <div class="term-line"> </div>
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">exploit --method http-204 --via iframe --delay 100ms</span></div>
-        <div class="term-line green">[+] 204 cancelled redirect &mdash; document preserved</div>
-        <div class="term-line green">[+] XSS executed in victim origin</div>
-        <div class="term-line"> </div>
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">report --disclosure responsible --timeline 90d</span></div>
-        <div class="term-line dim">[*] Writeup published. PoC attached. Part 1 of 3.</div>
+        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">exploit --http-204 --iframe --delay 100ms</span></div>
+        <div class="term-line green">[+] redirect cancelled &mdash; document preserved</div>
+        <div class="term-line green">[+] XSS confirmed in victim origin</div>
         <div class="term-line"><span class="term-cursor"></span></div>
       </div>
     </div>
