@@ -82,6 +82,8 @@
       <li><a href="#window-open">First Attempt: window.open</a></li>
       <li><a href="#iframes">The Breakthrough: iframes</a></li>
       <li><a href="#impact">Why This Matters</a></li>
+      <li><a href="#proof">The Proof</a></li>
+      <li><a href="#next">What's Next</a></li>
     </ol>
   </div>
 
@@ -258,11 +260,28 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
       <li>Has a delayed sink (<code>setTimeout</code>, <code>requestAnimationFrame</code>, async callback, promise chain)</li>
     </ol>
 
-    <p>...is potentially exploitable with this technique. The browser's execution model is not what most developers assume it is. Navigation is not synchronous. Redirects are not instant. And HTTP 204 preserves the document in a way that breaks the security assumptions of client-side sanitizers.</p>
+    <p>...is potentially exploitable with this technique. The <a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC framework</a> classifies attacks that exploit trust in client-side validation as a distinct category for good reason — the browser's execution model is not what most developers assume it is. Navigation is not synchronous. Redirects are not instant. And HTTP 204 preserves the document in a way that breaks the security assumptions of client-side sanitizers.</p>
 
-    <div class="info-box">
-      <strong>Part 2</strong> covers why iframes are fundamentally better than <code>window.open</code> for this attack, with hard timing data from a comparison test, and introduces the multi-frame barrage technique — spawning dozens of iframes simultaneously to guarantee at least one lands in the race window regardless of network conditions.
+    <h2 id="proof">The Proof</h2>
+
+    <p>Here's a full video walkthrough of the exploit in action — from opening the vulnerable page to the XSS alert firing:</p>
+
+    <div class="post-video">
+      <video controls preload="metadata">
+        <source src="../media/http-204-race-poc.mp4" type="video/mp4"/>
+        Your browser does not support the video element.
+      </video>
     </div>
+
+    <p>The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to <code>/login.html</code>, but the 204 cancels it. 500ms later, the <code>innerHTML</code> sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.</p>
+
+    <h2 id="next">What's Next</h2>
+
+    <p>In Part 1 I showed that the race condition exists and that iframes make it reliable. But we've only scratched the surface.</p>
+
+    <p><strong>Part 2</strong> will cover why iframes are fundamentally better than <code>window.open</code> for this attack, with hard timing data from a comparison test. I'll also introduce the multi-frame barrage technique — spawning dozens of iframes simultaneously to guarantee at least one lands in the race window, regardless of network conditions.</p>
+
+    <p><strong>Part 3</strong> goes into weaponization: data exfiltration (cookies, localStorage, DOM content), keylogger injection, phishing form injection, and chained payloads that do all three at once. Zero-pixel invisible iframes that self-destruct after execution.</p>
 
     <h2>References</h2>
 
@@ -275,24 +294,36 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
       </thead>
       <tbody>
         <tr>
-          <td>MDN: HTTP 204 No Content</td>
-          <td>Official documentation on 204 browser behavior</td>
+          <td><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN: HTTP 204 No Content</a></td>
+          <td>Official documentation on 204 behavior</td>
         </tr>
         <tr>
-          <td>RFC 9110 § 15.3.5</td>
+          <td><a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110 § 15.3.5</a></td>
           <td>HTTP specification defining 204 semantics</td>
         </tr>
         <tr>
-          <td>Chromium Source</td>
-          <td>Chromium's handling of 204 during navigation events</td>
+          <td><a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI: HTTP 204 Guide</a></td>
+          <td>Practical guide on 204 and browser behavior</td>
         </tr>
         <tr>
-          <td>W3C HTML5 Spec</td>
+          <td><a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium Source Changes</a></td>
+          <td>Chromium's handling of 204 during navigation</td>
+        </tr>
+        <tr>
+          <td><a href="https://trustedsec.com/blog/simple-data-exfiltration-through-xss">TrustedSec: XSS Exfiltration</a></td>
+          <td>Related work on XSS data exfiltration techniques</td>
+        </tr>
+        <tr>
+          <td><a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC-3000</a></td>
+          <td>Attack pattern classification for client-side exploitation</td>
+        </tr>
+        <tr>
+          <td><a href="https://www.w3.org/TR/2011/WD-html5-20110405/Overview.html">W3C HTML5 Specification</a></td>
           <td>Navigation and browsing context behavior</td>
         </tr>
         <tr>
-          <td>MITRE CAPEC</td>
-          <td>Attack pattern classification for client-side exploitation</td>
+          <td><a href="https://stackoverflow.com/questions/59884115/how-to-handle-204-errow-from-window-location-url">Stack Overflow: 204 and window.location</a></td>
+          <td>Developer discussion on 204 navigation edge cases</td>
         </tr>
       </tbody>
     </table>

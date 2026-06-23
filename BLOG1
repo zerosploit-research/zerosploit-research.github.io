@@ -209,7 +209,11 @@ The [MITRE CAPEC framework](https://capec.mitre.org/data/definitions/3000.html) 
 
 ## The Proof
 
-Here's what it looks like when it fires:
+Here's a full video walkthrough of the exploit in action — from opening the vulnerable page to the XSS alert firing:
+
+<video controls width="100%">
+  <source src="c:\Users\zeyad zonkorany\204\20260623-1627-19.4002911.mp4" type="video/mp4">
+</video>
 
 The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to `/login.html`, but the 204 cancels it. 500ms later, the `innerHTML` sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.
 

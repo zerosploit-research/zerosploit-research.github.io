@@ -1185,6 +1185,21 @@ footer {
   font-weight: 500;
 }
 
+.post-video {
+  margin: 1.4rem 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.post-video video {
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  background: #000;
+}
+
 .post-body table {
   width: 100%;
   border-collapse: collapse;
