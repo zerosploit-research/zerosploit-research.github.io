@@ -57,18 +57,17 @@
         <div class="term-path">~/zerosploit</div>
       </div>
       <div class="term-body">
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">audit --target io_uring --depth full</span></div>
-        <div class="term-line dim">[*] Scanning io_async_cancel() ...</div>
-        <div class="term-line dim">[*] Off-by-one found at line 3847</div>
-        <div class="term-line dim">[*] Heap overflow confirmed &mdash; SLUB boundary crossed</div>
-        <div class="term-line dim">[*] Race window ~150ns on SMP, deterministic</div>
+        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">audit --target webapp --check client-validation</span></div>
+        <div class="term-line dim">[*] window.location.href sanitizer detected</div>
+        <div class="term-line dim">[*] Delayed sink found &mdash; setTimeout(innerHTML, 500ms)</div>
+        <div class="term-line dim">[*] Navigation is async &mdash; race window confirmed</div>
         <div class="term-line"> </div>
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">exploit --stage full --target 6.7.8-generic</span></div>
-        <div class="term-line green">[+] uid=0(root) &mdash; 3.2 seconds</div>
-        <div class="term-line green">[+] CVE-2025-4471 assigned</div>
+        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">exploit --method http-204 --via iframe --delay 100ms</span></div>
+        <div class="term-line green">[+] 204 cancelled redirect &mdash; document preserved</div>
+        <div class="term-line green">[+] XSS executed in victim origin</div>
         <div class="term-line"> </div>
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">report --vendor kernel.org --disclosure 90d</span></div>
-        <div class="term-line dim">[*] Report sent. PoC attached. Clock starts now.</div>
+        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">report --disclosure responsible --timeline 90d</span></div>
+        <div class="term-line dim">[*] Writeup published. PoC attached. Part 1 of 3.</div>
         <div class="term-line"><span class="term-cursor"></span></div>
       </div>
     </div>
