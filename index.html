@@ -4,280 +4,122 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>ZeroSploit — Vulnerability Research</title>
-<meta name="description" content="Independent vulnerability research group. Original findings, full documentation, responsible disclosure."/>
-<meta name="theme-color" content="#060A09"/>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' font-size='24' fill='%231FC97A'>$</text></svg>"/>
+<meta name="description" content="Vulnerability research, disclosed responsibly. Notes on the flaws we find, how we find them, and what we tell vendors before anyone else."/>
+<meta name="theme-color" content="#0a1e21"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' font-size='24' fill='%2301bd7d'>$</text></svg>"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="assets/style.css"/>
 </head>
 <body>
 
-<!-- grain overlay -->
-<svg class="grain" aria-hidden="true"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
-
-<!-- ambient -->
-<div class="scene" aria-hidden="true">
-  <div class="glow-1"></div>
-  <div class="glow-2"></div>
+<!-- Advisory bar -->
+<div class="advisory-bar">
+  <div class="advisory-inner">
+    <span class="advisory-label">Latest —</span>
+    <a class="advisory-link" href="posts/http-204-race-xss.html">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</a>
+  </div>
 </div>
 
-<!-- NAV -->
+<!-- Nav -->
 <nav>
-  <a class="nav-logo" href="/">zero<span class="dollar">$</span>ploit</a>
-  <div class="nav-menu">
-    <a href="#research">Research</a>
-    <a href="#disciplines">Disciplines</a>
-    <a href="#about">About</a>
-    <a class="nav-contact" href="mailto:security@zerosploit.io">Contact</a>
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">zero<span class="dollar">$</span>ploit</a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a class="nav-link" href="#research">Research</a>
+      <a class="nav-right" href="mailto:security@zerosploit.io">Report a bug &nbsp;&rarr;</a>
+    </div>
+    <button class="nav-ham" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
-  <button class="nav-ham" aria-label="Toggle menu">
-    <span></span><span></span><span></span>
-  </button>
 </nav>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-left">
-    <p class="hero-tag">vulnerability research</p>
-    <h1 class="hero-h">We find what<br>others <span class="accent">missed</span>.</h1>
-    <p class="hero-sub">
-      Independent research group. 24+ CVEs across kernel, firmware,
-      web, and cloud attack surfaces. Every finding fully documented,
-      every PoC published.
-    </p>
-    <a class="hero-cta" href="#research">Read writeups <span>&rarr;</span></a>
-  </div>
+<!-- Hero -->
+<header class="home-hero">
+  <h1>Vulnerability research, disclosed responsibly.</h1>
+  <p>Notes on the flaws we find, how we find them, and what we tell vendors before anyone else.</p>
+</header>
 
-  <div class="hero-right">
-    <div class="term">
-      <div class="term-chrome">
-        <div class="term-dots"><span></span><span></span><span></span></div>
-        <div class="term-path">~/zerosploit</div>
-      </div>
-      <div class="term-body">
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">scan --target webapp --check client-validation</span></div>
-        <div class="term-line dim">[*] sanitizer: window.location.href redirect</div>
-        <div class="term-line dim">[*] async navigation + delayed sink &mdash; race window open</div>
-        <div class="term-line"> </div>
-        <div class="term-line"><span class="t-prompt">$</span> <span class="t-cmd">exploit --http-204 --iframe --delay 100ms</span></div>
-        <div class="term-line green">[+] redirect cancelled &mdash; document preserved</div>
-        <div class="term-line green">[+] XSS confirmed in victim origin</div>
-        <div class="term-line"><span class="term-cursor"></span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- STATS -->
-<div class="stats-strip">
-  <div class="stats-inner">
-    <div class="stat">
-      <span class="stat-n">1</span>
-      <span class="stat-l">Published writeup</span>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-n">3</span>
-      <span class="stat-l">Part series</span>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-n">0day</span>
-      <span class="stat-l">Sales. Never.</span>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-n">90d</span>
-      <span class="stat-l">Disclosure policy</span>
-    </div>
-  </div>
-</div>
-
-<!-- RESEARCH -->
-<section class="content-section" id="research">
-  <div class="sh reveal">
-    <span class="sh-n">01</span>
-    <span class="sh-t">Research</span>
-  </div>
-
-  <!-- Featured -->
-  <a href="posts/http-204-race-xss.html" class="feat reveal">
-    <div class="feat-top">
-      <span class="sev sev-h">High &middot; XSS Bypass</span>
-      <span class="feat-cve">Part 1 of 3</span>
-      <span class="feat-cvss">Race Condition</span>
-    </div>
-    <div class="feat-title">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</div>
-    <p class="feat-desc">How HTTP 204 No Content cancels browser navigation, turning a <code>window.location.href</code> redirect sanitizer into a race condition exploitable for XSS. Reliable execution in under 100ms using in-process iframes.</p>
-    <div class="feat-bottom">
-      <div class="feat-tags">
-        <span>xss</span>
-        <span>race condition</span>
-        <span>http 204</span>
-        <span>client-side</span>
-        <span>iframe</span>
-      </div>
+<!-- Featured -->
+<section class="home-featured" id="research">
+  <a class="feat-card" href="posts/http-204-race-xss.html">
+    <div class="feat-no">01</div>
+    <div>
+      <h2 class="feat-title">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</h2>
+      <p class="feat-excerpt">How HTTP 204 No Content cancels browser navigation, turning a window.location.href redirect sanitizer into a race condition exploitable for XSS. Reliable execution in under 100ms using in-process iframes.</p>
       <div class="feat-meta">
-        <span>Web / Browser</span>
+        <span>Zeyad Zonkorany</span>
+        <span>&middot;</span>
         <span>2026</span>
-        <span>Active Research</span>
+        <span>&middot;</span>
+        <span>12 min read</span>
       </div>
     </div>
-    <div class="feat-read">Read writeup <span>&rarr;</span></div>
   </a>
 </section>
 
-<!-- DISCIPLINES -->
-<div class="disc-wrap" id="disciplines">
-  <div class="disc-inner">
-    <div class="sh reveal">
-      <span class="sh-n">02</span>
-      <span class="sh-t">Disciplines</span>
-    </div>
-
-    <div class="disc-list">
-      <div class="disc reveal reveal-d1">
-        <span class="disc-n">01</span>
-        <div class="disc-content">
-          <h3>Memory Corruption</h3>
-          <p>Heap overflows, use-after-free, type confusion, OOB access. We write functional exploits &mdash; not crash reproducers.</p>
-        </div>
-      </div>
-      <div class="disc reveal reveal-d2">
-        <span class="disc-n">02</span>
-        <div class="disc-content">
-          <h3>Auth &amp; Crypto Flaws</h3>
-          <p>JWT confusion, broken PKCE, timing side-channels, and cryptographic primitive misuse in real production code.</p>
-        </div>
-      </div>
-      <div class="disc reveal reveal-d3">
-        <span class="disc-n">03</span>
-        <div class="disc-content">
-          <h3>Kernel &amp; Firmware</h3>
-          <p>Linux kernel subsystem audits, embedded firmware RE, and exploitation of privileged OS paths and driver surfaces.</p>
-        </div>
-      </div>
-      <div class="disc reveal reveal-d4">
-        <span class="disc-n">04</span>
-        <div class="disc-content">
-          <h3>Web &amp; Cloud Chains</h3>
-          <p>SSRF pivots, CI/CD poisoning, trust boundary violations. Low-severity bugs chained into critical impact.</p>
-        </div>
+<!-- Post list -->
+<section class="home-posts">
+  <div class="rule"></div>
+  <a class="post-row" href="posts/http-204-race-xss.html">
+    <div class="post-row-no">01</div>
+    <div>
+      <h4 class="post-row-title">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</h4>
+      <p class="post-row-excerpt">HTTP 204 preserves the document during navigation, cancelling redirect-based sanitizers and allowing delayed sinks to fire with unsanitized input.</p>
+      <div class="post-row-meta">
+        <span>Zeyad Zonkorany</span>
+        <span>&middot;</span>
+        <span>2026</span>
+        <span>&middot;</span>
+        <span>12 min read</span>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ABOUT -->
-<section class="content-section" id="about">
-  <div class="sh reveal">
-    <span class="sh-n">03</span>
-    <span class="sh-t">About</span>
-  </div>
-
-  <div class="about-grid">
-    <div class="about-statement reveal">
-      <h2>We don't sell 0days.<br>We <span class="accent">publish</span> them.</h2>
-      <p>ZeroSploit is an independent vulnerability research group. We pick targets based on real-world deployment &mdash; software that organizations depend on &mdash; and audit until we find what the vendor missed.</p>
-      <p>Every finding becomes a complete technical writeup. How we found it, how we exploited it, what defenders can do. No teaser posts. No paywalled details.</p>
-      <p>We believe defenders and attackers should not have asymmetric access to information. So we publish everything.</p>
-    </div>
-
-    <div class="reveal reveal-d2">
-      <div class="timeline">
-        <div class="tl-head">
-          <div class="tl-dot"></div>
-          <span class="tl-label">90-day disclosure</span>
-        </div>
-        <div class="tl-row">
-          <div class="tl-day">D+0</div>
-          <div>
-            <div class="tl-step">Vendor notification</div>
-            <p class="tl-desc">Full details and PoC sent on discovery day.</p>
-          </div>
-        </div>
-        <div class="tl-row">
-          <div class="tl-day">D+14</div>
-          <div>
-            <div class="tl-step">Escalation</div>
-            <p class="tl-desc">CERT/CC contacted if no vendor response.</p>
-          </div>
-        </div>
-        <div class="tl-row">
-          <div class="tl-day">D+90</div>
-          <div>
-            <div class="tl-step">Public disclosure</div>
-            <p class="tl-desc">Full writeup published regardless of patch status.</p>
-          </div>
-        </div>
-      </div>
-      <div class="policy-note">
-        <strong>// policy</strong>
-        No 0day sales &middot; No brokers &middot; No exceptions<br/>
-        PoC ships with every advisory
-      </div>
-    </div>
-  </div>
+  </a>
 </section>
 
-<!-- FOOTER -->
+<!-- Footer -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="f-logo">zero<span class="dollar">$</span>ploit</div>
-        <p class="f-desc">Independent vulnerability research. Original findings, full documentation, responsible disclosure.</p>
-        <div class="f-pgp">
-          <a href="mailto:security@zerosploit.io">security@zerosploit.io</a><br/>
-          PGP: DEAD BEEF C0DE F00D 1337
-        </div>
-      </div>
-      <div class="footer-links">
-        <div class="footer-col">
-          <h5>Research</h5>
-          <ul>
-            <li><a href="#">All Writeups</a></li>
-            <li><a href="#">CVE Index</a></li>
-            <li><a href="#">By Severity</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h5>Links</h5>
-          <ul>
-            <li><a href="#about">About</a></li>
-            <li><a href="#">GitHub</a></li>
-            <li><a href="#">Twitter / X</a></li>
-          </ul>
-        </div>
+  <div class="footer-grid">
+    <div>
+      <div class="nav-logo" style="margin-bottom:16px;">zero<span class="dollar">$</span>ploit</div>
+      <p class="footer-brand-text">Independent vulnerability research. Original findings, full documentation, responsible disclosure.</p>
+      <div class="footer-social">
+        <a href="https://github.com/zerosploit-research" target="_blank">GitHub</a>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span class="f-copy">&copy; 2026 ZeroSploit &middot; Research for defensive purposes only</span>
-      <div class="f-status">
-        <span class="f-status-dot"></span>
-        operational
-      </div>
+    <div>
+      <div class="footer-col-title">Research</div>
+      <ul class="footer-col-links">
+        <li><a href="#research">All Research</a></li>
+      </ul>
     </div>
+    <div>
+      <div class="footer-col-title">About</div>
+      <ul class="footer-col-links">
+        <li><a href="mailto:security@zerosploit.io">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Contact</div>
+      <ul class="footer-contact">
+        <li>security@zerosploit.io</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 ZeroSploit. All rights reserved.</span>
+    <span>Coordinated disclosure &middot; 90-day policy</span>
   </div>
 </footer>
 
 <script>
 document.querySelector('.nav-ham').addEventListener('click', function() {
   this.classList.toggle('active');
-  document.querySelector('.nav-menu').classList.toggle('open');
+  document.querySelector('.nav-links').classList.toggle('open');
 });
-
-var observer = new IntersectionObserver(function(entries) {
-  entries.forEach(function(e) {
-    if (e.isIntersecting) {
-      e.target.classList.add('revealed');
-      observer.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
-document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
 </script>
 
 </body>

